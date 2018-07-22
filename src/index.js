@@ -1,5 +1,6 @@
 import fs from 'fs';
 import MagicString from 'magic-string';
+import { createFilter } from 'rollup-pluginutils';
 
 import extractNamedImports from './extractNamedImports';
 import extractNamedExports from './extractNamedExports';
@@ -7,9 +8,18 @@ import extractNamedExports from './extractNamedExports';
 const IMPORT_EXPORT_DECLARATION_PATTERN = /^(?:Import|Export(?:Named|Default))Declaration/;
 
 const extracedNamedExports = [];
+let loader;
 let globalImportIndex = 0;
 
-const readFile = path => new Promise((resolve, reject) => {
+const readFile = path => new Promise(async (resolve, reject) => {
+
+  const content = await loader(path);
+
+  if (content) {
+    return resolve(content);
+  }
+
+  // fall back to file loading
   fs.readFile(path, 'utf8', (error, content) => {
     if (error) {
       reject(error);
@@ -31,13 +41,30 @@ const isCjsModule = ast => {
 
 export default function namedExports(options = {}) {
 
+  const filter = createFilter( options.include, options.exclude );
+
+
   return {
     name: 'namedExports',
 
-    async transform(rawCode, id) {
+    options(options) {
 
-      // we only handle user code
-      if (~id.indexOf('node_modules') || id[0] !== '/') {
+      const loaders = (options.plugins || []).map(plugin => plugin.load).filter(Boolean);
+
+      loader = async id => {
+        for (const load of loaders) {
+          const result = await load(id);
+          if (result) {
+            return result;
+          }
+        }
+      };
+    },
+
+    async transform(rawCode, id) {
+      
+      // we only handle user code and no commonjs-proxies
+      if (!filter( id ) || ~id.indexOf('node_modules') || ~id.indexOf('commonjs-proxy')) {
         return null;
       }
 
@@ -48,7 +75,16 @@ export default function namedExports(options = {}) {
 
       const transformedImports = (await Promise.all(
         imports.map(async ({ lib, namedImports, ...rest }) => {
+          if (this.isExternal(lib, id)) {
+            return false;
+          }
+
           const path = await this.resolveId(lib, id);
+          if (path === null) {
+            this.warn(`Could not resolve path to "${lib}"`);
+            return false;
+          }
+
           const moduleCode = await readFile(path);
           const ast = this.parse(moduleCode);
 
@@ -118,8 +154,6 @@ export default function namedExports(options = {}) {
       }
 
       code.appendLeft(injectionIndex, `\n${destructions.join('\n')}\n`);
-
-      console.log(code.toString());
 
       return {
         code: code.toString(),
