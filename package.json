@@ -1,0 +1,27 @@
+{
+  "name": "rollup-plugin-named-exports",
+  "version": "1.0.0",
+  "description": "Automatically adds named exports",
+  "main": "dist/rollup-plugin-named-exports.cjs.js",
+  "module": "dist/rollup-plugin-named-exports.es.js",
+  "jsnext:main": "dist/rollup-plugin-named-exports.es.js",
+  "repository": "https://github.com/bytorsten/rollup-plugin-named-exports",
+  "author": "Torsten Blindert",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "magic-string": "^0.25.0",
+    "resolve": "^1.8.1"
+  },
+  "peerDependencies": {
+    "rollup": "^0.63.4"
+  },
+  "devDependencies": {
+    "rollup": "^0.63.4"
+  },
+  "scripts": {
+    "dev": "rollup -c -w",
+    "build": "rollup -c",
+    "prepare": "npm run build"
+  }
+}
