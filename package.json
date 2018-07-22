@@ -1,6 +1,6 @@
 {
   "name": "rollup-plugin-named-exports",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Automatically adds named exports",
   "main": "dist/rollup-plugin-named-exports.cjs.js",
   "module": "dist/rollup-plugin-named-exports.es.js",
