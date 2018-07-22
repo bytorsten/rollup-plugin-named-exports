@@ -62,9 +62,9 @@ export default function namedExports(options = {}) {
     },
 
     async transform(rawCode, id) {
-      
-      // we only handle user code and no commonjs-proxies
-      if (!filter( id ) || ~id.indexOf('node_modules') || ~id.indexOf('commonjs-proxy')) {
+
+      // we only handle user code
+      if (!filter( id ) || ~id.indexOf('node_modules') || /\0/.test(id)) {
         return null;
       }
 
