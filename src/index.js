@@ -5,7 +5,7 @@ import { createFilter } from 'rollup-pluginutils';
 import extractNamedImports from './extractNamedImports';
 import extractNamedExports from './extractNamedExports';
 
-const IMPORT_EXPORT_DECLARATION_PATTERN = /^(?:Import|Export(?:Named|Default))Declaration/;
+const IMPORT_EXPORT_DECLARATION_PATTERN = /^(?:Import|Export(?:Named|All|Default))Declaration/;
 
 const extracedNamedExports = [];
 let loader;
