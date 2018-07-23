@@ -4,6 +4,7 @@ import { createFilter } from 'rollup-pluginutils';
 
 import extractNamedImports from './extractNamedImports';
 import extractNamedExports from './extractNamedExports';
+import replaceDefaultRequires from './replaceDefaultRequires';
 
 const IMPORT_EXPORT_DECLARATION_PATTERN = /^(?:Import|Export(?:Named|All|Default))Declaration/;
 
@@ -91,11 +92,17 @@ export default function namedExports(options = {}) {
     async transform(rawCode, id) {
 
       // we only handle user code
-      if (!filter( id ) || ~id.indexOf('node_modules') || /\0/.test(id)) {
+      if (!filter( id ) || /\0/.test(id)) {
         return null;
       }
 
-      const { imports, injectionIndex } = extractNamedImports(this.parse(rawCode));
+      const ast = this.parse(rawCode);
+
+      if (await isCjsModule(ast)) {
+        return replaceDefaultRequires({ rawCode, ast });
+      }
+
+      const { imports, injectionIndex } = extractNamedImports(ast);
       if (imports.length === 0) {
         return null;
       }

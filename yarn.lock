@@ -247,7 +247,7 @@ resolve@^1.8.1:
   dependencies:
     path-parse "^1.0.5"
 
-rollup-pluginutils@^2.3.0:
+rollup-pluginutils@^2.0.1:
   version "2.3.0"
   resolved "https://registry.npmjs.org/rollup-pluginutils/-/rollup-pluginutils-2.3.0.tgz#478ace04bd7f6da2e724356ca798214884738fc4"
   dependencies:
