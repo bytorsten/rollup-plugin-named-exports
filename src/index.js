@@ -177,7 +177,9 @@ export default function namedExports(options = {}) {
 
       return {
         code: code.toString(),
-        map: code.generateMap()
+        map: code.generateMap({
+          hires: true
+        })
       };
     }
   };
