@@ -7,7 +7,7 @@ import extractNamedExports from './extractNamedExports';
 
 const IMPORT_EXPORT_DECLARATION_PATTERN = /^(?:Import|Export(?:Named|All|Default))Declaration/;
 
-const extracedNamedExports = [];
+const extractedNamedExports = [];
 let loader;
 let globalImportIndex = 0;
 
@@ -37,6 +37,33 @@ const isCjsModule = ast => {
   }
 
   return true;
+};
+
+const getNamedExports = async (ctx, lib, id) => {
+  if (ctx.isExternal(lib, id)) {
+    return null;
+  }
+
+  const path = await ctx.resolveId(lib, id);
+  if (path === null) {
+    ctx.warn(`Could not resolve path to "${lib}"`);
+    return null;
+  }
+
+  if (extractedNamedExports[path]) {
+    return extractedNamedExports[path];
+  }
+
+  return extractNamedExports[path] = new Promise(async resolve => {
+    const moduleCode = await readFile(path);
+    const ast = ctx.parse(moduleCode);
+
+    if (isCjsModule(ast)) {
+      resolve(extractNamedExports(ast));
+    } else {
+      resolve(null);
+    }
+  });
 };
 
 export default function namedExports(options = {}) {
@@ -75,41 +102,27 @@ export default function namedExports(options = {}) {
 
       const transformedImports = (await Promise.all(
         imports.map(async ({ lib, namedImports, ...rest }) => {
-          if (this.isExternal(lib, id)) {
+          const namedExports = await getNamedExports(this, lib, id);
+          if (namedExports === null) {
             return false;
           }
 
-          const path = await this.resolveId(lib, id);
-          if (path === null) {
-            this.warn(`Could not resolve path to "${lib}"`);
-            return false;
-          }
+          const unresolvedNamedImports = {};
+          const filteredNamedImports = {};
 
-          const moduleCode = await readFile(path);
-          const ast = this.parse(moduleCode);
-
-          if (isCjsModule(ast)) {
-            const namedExports = extractNamedExports(ast);
-            const unresolvedNamedImports = {};
-            const filteredNamedImports = {};
-
-            for (const namedImport in namedImports) {
-              if (~namedExports.indexOf(namedImport)) {
-                filteredNamedImports[namedImport] = namedImports[namedImport];
-              } else {
-                unresolvedNamedImports[namedImport] = namedImports[namedImport];
-              }
+          for (const namedImport in namedImports) {
+            if (~namedExports.indexOf(namedImport)) {
+              filteredNamedImports[namedImport] = namedImports[namedImport];
+            } else {
+              unresolvedNamedImports[namedImport] = namedImports[namedImport];
             }
+          }
 
-            if (Object.keys(unresolvedNamedImports).length === 0) {
-              return false;
-            }
-
-            return { lib, namedImports: filteredNamedImports, unresolvedNamedImports, ...rest };
-          } else {
-            extracedNamedExports[lib] = false;
+          if (Object.keys(unresolvedNamedImports).length === 0) {
             return false;
           }
+
+          return { lib, namedImports: filteredNamedImports, unresolvedNamedImports, ...rest };
         })
       )).filter(Boolean);
 
